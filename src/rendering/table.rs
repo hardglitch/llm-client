@@ -1,4 +1,4 @@
-
+use crate::rendering::regexes::RE_ASCII;
 
 pub fn normalize_table(text: &str) -> String {
 	let text = convert_ascii(text);
@@ -6,20 +6,19 @@ pub fn normalize_table(text: &str) -> String {
 }
 
 fn convert_ascii(text: &str) -> String {
-    text.lines()
-        .map(|line| {
-            line.replace("│", "|")
-                .replace("┌", "")
-                .replace("┬", "|")
-                .replace("┐", "")
-                .replace("─", "-")
-        })
-        .collect::<Vec<_>>()
-        .join("\n")
+    RE_ASCII.replace_all(text, |caps: &regex::Captures| {
+        match &caps[0] {
+            "│" | "┬" => "|",
+            "─" => "-",
+            "┌" | "┐" => "",
+            _ => unreachable!(),
+        }
+    })
+        .into_owned()
 }
 
 fn convert_table_to_terminad_style(input: &str) -> String {
-    dbg!(&input);
+    // dbg!(&input);
     let mut lines = input.lines().peekable();
     let mut out = Vec::new();
 
