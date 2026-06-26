@@ -5,7 +5,7 @@ use clap::Parser;
 #[command(about = "CLI agent for any OpenAI-compatible server", long_about = None)]
 pub struct Args {
     /// Server host (e.g. localhost or 127.0.0.1)
-    #[arg(short = 'h', long = "host", default_value = "127.0.0.1")]
+    #[arg(long = "host", default_value = "127.0.0.1")]
     host: String,
 
     /// Server port
