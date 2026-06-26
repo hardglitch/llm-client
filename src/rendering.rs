@@ -72,6 +72,7 @@ fn render_inner(text: &str, skin: &mut MadSkin) {
             }
         }
     }
+    println!();
 }
 
 #[inline]
