@@ -29,7 +29,7 @@ struct MessageOwned {
     content: String,
 }
 
-pub fn send_prompt(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
+pub fn send_prompt(prompt: &str, address: &str) -> Result<String, Box<dyn std::error::Error>> {
     let req = ChatRequest {
         model: "any",
         messages: vec![Message {
@@ -38,8 +38,9 @@ pub fn send_prompt(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
         }],
     };
 
+    let address = if address.is_empty() { SERVER_URL } else { address };
 	let value = serde_json::to_vec(&req)?;
-    let mut response = ureq::post(SERVER_URL)
+    let mut response = ureq::post(address)
         .header("Content-Type", "application/json")
         .send(value)?;
 

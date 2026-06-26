@@ -16,13 +16,13 @@ pub fn make_skin() -> MadSkin {
     skin.headers[2].set_fg(Color::Cyan);
 
     // ===== TEXT STYLES =====
-    skin.bold.set_fg(Color::Green);
+    skin.bold.set_fg(Color::Rgb {r: 94, g: 227, b: 112});
     skin.italic.set_fg(Color::DarkCyan);
     skin.strikeout.set_fg(Color::DarkGrey);
 
     // ===== CODE =====
     skin.inline_code.set_fg(Color::Yellow);
-    skin.code_block.set_fg(Color::parse_ansi("2;134;138;145").unwrap());
+    skin.code_block.set_fg(Color::Rgb {r: 134, g: 138, b: 145});
     skin.code_block.set_bg(Color::Black);
 
     // ===== QUOTES =====
@@ -31,10 +31,10 @@ pub fn make_skin() -> MadSkin {
     // ===== TABLES =====
     // skin.paragraph.align = Alignment::Center;
     skin.table.align = Alignment::Center;
-    skin.table.set_fg(Color::parse_ansi("2;248;252;222").unwrap()); // rgb
+    skin.table.set_fg(Color::Rgb {r: 248, g: 252, b: 222});
 
     // ===== LISTS =====
-	skin.bullet = StyledChar::new(CompoundStyle::with_fg(Color::Green), '•');
+	skin.bullet = StyledChar::new(CompoundStyle::with_fg(Color::Rgb {r: 254, g: 164, b: 75}), '•');
 
     // ===== LINKS =====
     skin.inline_code.set_fg(Color::Yellow);
@@ -42,28 +42,15 @@ pub fn make_skin() -> MadSkin {
     skin
 }
 
-pub fn render_markdown(text: &str, skin: &mut MadSkin) {
+pub fn render(text: &str, skin: &mut MadSkin) {
 	let text = strip_think(text);
 	let text = normalize_text(&text);
     let text = normalize_unicode(&text);
 
-    render(&text, skin);
+    render_inner(&text, skin);
 }
 
-fn normalize_text(text: &str) -> String {
-    RE_TEXT.replace_all(text, |caps: &regex::Captures| {
-        match &caps[0] {
-            "–" | "—" => "-",
-            "…" => "...",
-            "error" => "**error**",
-            "warning" => "*warning*",
-            _ => unreachable!(),
-        }
-    })
-        .into_owned()
-}
-
-pub fn render(text: &str, skin: &mut MadSkin) {
+fn render_inner(text: &str, skin: &mut MadSkin) {
     let blocks = parse_blocks(text);
 
     print!("< ");
@@ -85,4 +72,18 @@ pub fn render(text: &str, skin: &mut MadSkin) {
             }
         }
     }
+}
+
+#[inline]
+fn normalize_text(text: &str) -> String {
+    RE_TEXT.replace_all(text, |caps: &regex::Captures| {
+        match &caps[0] {
+            "–" | "—" => "-",
+            "…" => "...",
+            "error" => "**error**",
+            "warning" => "*warning*",
+            _ => unreachable!(),
+        }
+    })
+        .into_owned()
 }
