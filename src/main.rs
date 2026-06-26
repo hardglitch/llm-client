@@ -6,6 +6,8 @@ mod rendering;
 mod text_processing;
 mod highlighting;
 mod messaging;
+mod parsing;
+
 
 fn main() {
 	let skin = &mut make_skin();

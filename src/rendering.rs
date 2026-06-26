@@ -1,7 +1,9 @@
 use termimad::{MadSkin, Alignment, StyledChar, CompoundStyle, crossterm::style::Color};
 use crate::highlighting::highlight_code;
 use crate::text_processing::{strip_think, normalize_unicode};
+use crate::parsing::{Block, parse_blocks};
 
+mod table;
 
 pub fn make_skin() -> MadSkin {
     let mut skin = MadSkin::default();
@@ -25,8 +27,9 @@ pub fn make_skin() -> MadSkin {
     skin.quote_mark.set_fg(Color::DarkGrey);
 
     // ===== TABLES =====
+    skin.paragraph.align = Alignment::Center;
     skin.table.align = Alignment::Center;
-    skin.table.set_fg(Color::White);
+    skin.table.set_fg(Color::parse_ansi("2;248;252;222").unwrap()); // rgb
 
     // ===== LISTS =====
 	skin.bullet = StyledChar::new(CompoundStyle::with_fg(Color::Green), '•');
@@ -38,45 +41,46 @@ pub fn make_skin() -> MadSkin {
 }
 
 pub fn render_markdown(text: &str, skin: &mut MadSkin) {
-	let cleaned = strip_think(text);
-	let colorized = colorize(&cleaned);
+	let text = strip_think(text);
+	let text = normalize_text(&text);
 	
 	println!();
-	render(&colorized, skin);
+	render(&text, skin);
 	println!();
 }
 
-fn colorize(text: &str) -> String {
+fn normalize_text(text: &str) -> String {
     text
+        .replace("–", "-")
+        .replace("—", "-")
+        .replace("…", "...")
         .replace("error", "**error**")
         .replace("warning", "*warning*")
 }
 
-fn render(text: &str, skin: &mut MadSkin) {
-    let mut in_code = false;
-    let mut lang = "";
-    let mut buffer = String::new();
+pub fn render(text: &str, skin: &mut MadSkin) {
+    let blocks = parse_blocks(text);
 
-    for line in text.lines() {
-        if line.starts_with("```") {
-            if in_code {
-                // render highlighted code
-                println!("{}", highlight_code(&buffer, lang));
-                buffer.clear();
-                in_code = false;
-            } else {
-                lang = line.trim_start_matches("```");
-                in_code = true;
+    println!();
+
+    for block in blocks {
+        match block {
+            Block::Code { code, lang } => {
+                let hl = highlight_code(&code, &lang);
+                println!("{hl}");
             }
-            continue;
-        }
 
-        if in_code {
-            buffer.push_str(line);
-            buffer.push('\n');
-        } else {
-			let normalized = normalize_unicode(line);
-            skin.print_text(&normalized);
+            Block::Table(table) => {
+                let table = table::normalize_table(&table);
+                skin.print_text(&table);
+            }
+
+            Block::Text(txt) => {
+                let normalized = normalize_unicode(&txt);
+                skin.print_text(&normalized);
+            }
         }
     }
+
+    println!();
 }
