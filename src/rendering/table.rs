@@ -49,7 +49,7 @@ fn convert_table_to_terminad_style(input: &str) -> String {
 			));
 
 			// 3. Middle separator row (normalized but varied)
-			out.push(build_mixed_separator(cols));
+			out.push(build_align_row(cols));
 
 			// 4. Data rows
 			while let Some(next) = lines.peek() {
@@ -95,23 +95,6 @@ fn split_row(line: &str) -> Vec<String> {
         .collect()
 }
 
-// |:-:|:-:|:-:|
 fn build_align_row(cols: usize) -> String {
     format!("|{}|", vec![":-:"; cols].join("|"))
-}
-
-// |-:|:-:|:-|  (pattern like your example)
-fn build_mixed_separator(cols: usize) -> String {
-    let mut parts = Vec::new();
-
-    for i in 0..cols {
-        let part = match i % 3 {
-            0 => "-:",
-            1 => ":-:",
-            _ => ":-",
-        };
-        parts.push(part.to_string());
-    }
-
-    format!("|{}|", parts.join("|"))
 }
