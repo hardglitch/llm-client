@@ -1,130 +1,98 @@
-name: Build & Release (Full Pipeline)
+name: Release Builds (Multi-OS)
 
 on:
-push:
-tags:
-- "v*"
-
-permissions:
-contents: write
+  push:
+    tags:
+      - "v*"  # запускаем только на тегах вида v1.0.0
 
 env:
-APP_NAME: llm-client
+  CARGO_TERM_COLOR: always
+  RUST_VERSION: stable
 
 jobs:
-build:
-name: Build (${{ matrix.os }})
-runs-on: ${{ matrix.os }}
+  build-multi-os:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            artifact-name: llm-client-linux-x86_64
+            ext: ""
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact-name: llm-client-macos-x86_64
+            ext: ""
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact-name: llm-client-windows-x86_64.exe
+            ext: ".exe"
 
-```
-strategy:
-  matrix:
-    include:
-      - os: ubuntu-latest
-        target: linux
-      - os: windows-latest
-        target: windows
-      - os: macos-latest
-        target: macos
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: ${{ matrix.target }}
 
-  # Install Rust (adjust if needed)
-  - name: Setup Rust
-    uses: dtolnay/rust-toolchain@stable
+      - name: Install musl tools (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
 
-  # Linux deps
-  - name: Install Linux deps
-    if: runner.os == 'Linux'
-    run: |
-      sudo apt update
-      sudo apt install -y dpkg-dev
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
 
-  # Build
-  - name: Build
-    run: cargo build --release
+      - name: Rename and prepare artifact
+        run: |
+          BINARY_PATH="target/${{ matrix.target }}/release/llm-client${{ matrix.ext }}"
+          mv "$BINARY_PATH" "${{ matrix.artifact-name }}"
 
-  # Prepare artifacts
-  - name: Prepare Linux
-    if: runner.os == 'Linux'
-    run: |
-      mkdir -p dist
-      cp target/release/${APP_NAME} dist/${APP_NAME}-linux
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.artifact-name }}
+          retention-days: 7
 
-  - name: Prepare Windows
-    if: runner.os == 'Windows'
-    run: |
-      mkdir dist
-      copy target\release\${APP_NAME}.exe dist\${APP_NAME}-windows.exe
+  create-release:
+    needs: build-multi-os
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
-  - name: Prepare macOS
-    if: runner.os == 'macOS'
-    run: |
-      mkdir -p dist
-      cp target/release/${APP_NAME} dist/${APP_NAME}-macos
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: releases
 
-  # Build .deb (Linux only)
-  - name: Build .deb
-    if: runner.os == 'Linux'
-    run: |
-      VERSION=${GITHUB_REF_NAME#v}
+      - name: Create GitHub Release
+        id: create_release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+          name: "Release ${{ github.ref_name }}"
+          body: |
+            ## Changelog
+            First stable release.
 
-      mkdir -p pkg/DEBIAN
-      mkdir -p pkg/usr/local/bin
+            ### Binaries
+            - [Linux x86_64](releases/llm-client-linux-x86_64)
+            - [macOS x86_64](releases/llm-client-macos-x86_64)
+            - [Windows x86_64](releases/llm-client-windows-x86_64.exe)
+          draft: false
+          prerelease: false
 
-      cp target/release/${APP_NAME} pkg/usr/local/bin/${APP_NAME}
-
-      cat <<EOF > pkg/DEBIAN/control
-      Package: ${APP_NAME}
-      Version: ${VERSION}
-      Section: base
-      Priority: optional
-      Architecture: amd64
-      Maintainer: unknown
-      Description: ${APP_NAME}
-      EOF
-
-      dpkg-deb --build pkg ${APP_NAME}-${VERSION}.deb
-      mv ${APP_NAME}-${VERSION}.deb dist/
-
-  # Zip artifacts
-  - name: Zip (Linux/macOS)
-    if: runner.os != 'Windows'
-    run: |
-      cd dist
-      zip ${APP_NAME}-${{ matrix.target }}.zip *
-
-  - name: Zip (Windows)
-    if: runner.os == 'Windows'
-    run: |
-      cd dist
-      powershell Compress-Archive -Path * -DestinationPath ${APP_NAME}-windows.zip
-
-  # Upload artifacts
-  - name: Upload
-    uses: actions/upload-artifact@v4
-    with:
-      name: ${{ matrix.target }}
-      path: dist/*
-```
-
-release:
-name: Create Release
-needs: build
-runs-on: ubuntu-latest
-
-```
-steps:
-  - name: Download artifacts
-    uses: actions/download-artifact@v4
-
-  - name: Create Release
-    uses: softprops/action-gh-release@v2
-    with:
-      files: |
-        **/*
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
+      - name: Upload binaries to release
+        run: |
+          for file in releases/*; do
+            gh release upload "${{ steps.create_release.outputs.id }}" "$file" --clobber
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
