@@ -1,4 +1,4 @@
-name: Release Builds (Multi-OS & Multi-Arch)
+name: Release Builds (Multi-OS)
 
 on:
   push:
@@ -29,6 +29,7 @@ jobs:
             target: x86_64-pc-windows-msvc
             artifact-name: llm-client-windows-x86_64.exe
             ext: ".exe"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -39,27 +40,27 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
           targets: ${{ matrix.target }}
 
-      - name: Install musl tools (Linux x86_64 only)
-        if: matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64-unknown-linux-musl'
+      - name: Install musl tools (Linux only)
+        if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get install -y musl-tools
 
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Prepare artifact (rename & move)
+      - name: Prepare artifact (rename to simple name)
         shell: bash
         run: |
           BINARY_PATH="target/${{ matrix.target }}/release/llm-client${{ matrix.ext }}"
           ARTIFACT_NAME="${{ matrix.artifact-name }}"
           mv "$BINARY_PATH" "$ARTIFACT_NAME"
-          echo "Created artifact: $ARTIFACT_NAME"
+          echo "✅ Created artifact: $ARTIFACT_NAME (size: $(stat -c%s "$ARTIFACT_NAME") bytes)"
 
-      - name: Upload artifact
+      - name: Upload artifact to Actions storage
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}
           path: ${{ matrix.artifact-name }}
-          retention-days: 7
+          retention-days: 1
 
   create-release:
     needs: build-multi-os
@@ -68,10 +69,14 @@ jobs:
       contents: write
 
     steps:
-      - name: Download all artifacts
+      - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
           path: releases
+          flatten: true
+
+      - name: Verify files exist (Debug step)
+        run: ls -la releases/
 
       - name: Create Release and upload assets
         uses: softprops/action-gh-release@v1
@@ -79,8 +84,7 @@ jobs:
           name: "Release ${{ github.ref_name }}"
           body: |
             ## Changelog
-            
-            No changelog.
+            * No changelog.
           files: |
             releases/llm-client-linux-x86_64
             releases/llm-client-macos-x86_64
