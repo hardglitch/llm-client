@@ -1,4 +1,4 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 use syntect::{
     easy::HighlightLines,
     highlighting::{ThemeSet},
@@ -6,8 +6,8 @@ use syntect::{
     util::as_24_bit_terminal_escaped,
 };
 
-static PS: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines);
-static TS: Lazy<ThemeSet> = Lazy::new(ThemeSet::load_defaults);
+static PS: LazyLock<SyntaxSet> = LazyLock::new(SyntaxSet::load_defaults_newlines);
+static TS: LazyLock<ThemeSet> = LazyLock::new(ThemeSet::load_defaults);
 
 pub fn highlight_code(code: &str, lang: &str) -> String {
     let syntax = PS.find_syntax_by_token(lang)

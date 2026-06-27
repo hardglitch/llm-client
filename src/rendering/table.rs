@@ -43,7 +43,7 @@ fn convert_table_to_terminad_style(input: &str) -> String {
 				"|{}|",
 				headers
 					.iter()
-					.map(|h| h.trim().to_string())
+					.map(|h| format!("**{}**", h.trim()))
 					.collect::<Vec<_>>()
 					.join("|")
 			));
