@@ -1,0 +1,130 @@
+name: Build & Release (Full Pipeline)
+
+on:
+push:
+tags:
+- "v*"
+
+permissions:
+contents: write
+
+env:
+APP_NAME: llm-client
+
+jobs:
+build:
+name: Build (${{ matrix.os }})
+runs-on: ${{ matrix.os }}
+
+```
+strategy:
+  matrix:
+    include:
+      - os: ubuntu-latest
+        target: linux
+      - os: windows-latest
+        target: windows
+      - os: macos-latest
+        target: macos
+
+steps:
+  - name: Checkout
+    uses: actions/checkout@v4
+
+  # Install Rust (adjust if needed)
+  - name: Setup Rust
+    uses: dtolnay/rust-toolchain@stable
+
+  # Linux deps
+  - name: Install Linux deps
+    if: runner.os == 'Linux'
+    run: |
+      sudo apt update
+      sudo apt install -y dpkg-dev
+
+  # Build
+  - name: Build
+    run: cargo build --release
+
+  # Prepare artifacts
+  - name: Prepare Linux
+    if: runner.os == 'Linux'
+    run: |
+      mkdir -p dist
+      cp target/release/${APP_NAME} dist/${APP_NAME}-linux
+
+  - name: Prepare Windows
+    if: runner.os == 'Windows'
+    run: |
+      mkdir dist
+      copy target\release\${APP_NAME}.exe dist\${APP_NAME}-windows.exe
+
+  - name: Prepare macOS
+    if: runner.os == 'macOS'
+    run: |
+      mkdir -p dist
+      cp target/release/${APP_NAME} dist/${APP_NAME}-macos
+
+  # Build .deb (Linux only)
+  - name: Build .deb
+    if: runner.os == 'Linux'
+    run: |
+      VERSION=${GITHUB_REF_NAME#v}
+
+      mkdir -p pkg/DEBIAN
+      mkdir -p pkg/usr/local/bin
+
+      cp target/release/${APP_NAME} pkg/usr/local/bin/${APP_NAME}
+
+      cat <<EOF > pkg/DEBIAN/control
+      Package: ${APP_NAME}
+      Version: ${VERSION}
+      Section: base
+      Priority: optional
+      Architecture: amd64
+      Maintainer: unknown
+      Description: ${APP_NAME}
+      EOF
+
+      dpkg-deb --build pkg ${APP_NAME}-${VERSION}.deb
+      mv ${APP_NAME}-${VERSION}.deb dist/
+
+  # Zip artifacts
+  - name: Zip (Linux/macOS)
+    if: runner.os != 'Windows'
+    run: |
+      cd dist
+      zip ${APP_NAME}-${{ matrix.target }}.zip *
+
+  - name: Zip (Windows)
+    if: runner.os == 'Windows'
+    run: |
+      cd dist
+      powershell Compress-Archive -Path * -DestinationPath ${APP_NAME}-windows.zip
+
+  # Upload artifacts
+  - name: Upload
+    uses: actions/upload-artifact@v4
+    with:
+      name: ${{ matrix.target }}
+      path: dist/*
+```
+
+release:
+name: Create Release
+needs: build
+runs-on: ubuntu-latest
+
+```
+steps:
+  - name: Download artifacts
+    uses: actions/download-artifact@v4
+
+  - name: Create Release
+    uses: softprops/action-gh-release@v2
+    with:
+      files: |
+        **/*
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
