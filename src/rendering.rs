@@ -1,8 +1,10 @@
 use termimad::{MadSkin, Alignment, StyledChar, CompoundStyle, crossterm::style::Color};
 use crate::highlighting::highlight_code;
+use crate::log;
 use crate::text_processing::{strip_think, normalize_unicode};
 use crate::parsing::{Block, parse_blocks};
 use crate::rendering::regexes::RE_TEXT;
+use std::io::Write;
 
 mod table;
 mod regexes;
@@ -58,8 +60,10 @@ fn render_inner(text: &str, skin: &mut MadSkin) {
     for block in blocks {
         match block {
             Block::Code { code, lang } => {
-                let hl = highlight_code(&code, &lang);
-                println!("{hl}");
+                match highlight_code(&code, &lang) {
+                    Ok(hl) => println!("{hl}"),
+                    Err(e) => log!("{e}")
+                }
             }
 
             Block::Table(table) => {

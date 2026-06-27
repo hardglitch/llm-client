@@ -3,6 +3,7 @@ use clap::Parser;
 use rendering::{make_skin, render};
 use messaging::send_prompt;
 use crate::commands::Args;
+use crate::logging::Log;
 
 mod rendering;
 mod text_processing;
@@ -10,10 +11,13 @@ mod highlighting;
 mod messaging;
 mod parsing;
 mod commands;
+mod logging;
 
 fn main() {
     let args = Args::parse();
     let address = args.address();
+    Log::init(&args.log_file, args.log_size);
+
 	let skin = &mut make_skin();
 
     println!("llm-client");

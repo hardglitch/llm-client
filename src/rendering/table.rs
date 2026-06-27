@@ -54,8 +54,10 @@ fn convert_table_to_terminad_style(input: &str) -> String {
 			// 4. Data rows
 			while let Some(next) = lines.peek() {
 				if is_table_row(next) {
-					let row = split_row(lines.next().unwrap());
-					out.push(format!("|{}|", row.join("|")));
+					if let Some(l) = lines.next() {
+						let row = split_row(l);
+						out.push(format!("|{}|", row.join("|")));
+					}
 				} else {
 					break;
 				}

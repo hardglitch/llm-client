@@ -24,8 +24,10 @@ pub fn parse_blocks(input: &str) -> Vec<Block> {
 
             while let Some(next) = lines.peek() {
                 if is_table_line(next) {
-                    buffer.push_str(lines.next().unwrap());
-                    buffer.push('\n');
+                    if let Some(l) = lines.next() {
+                        buffer.push_str(l);
+                        buffer.push('\n');
+                    }
                 } else {
                     break;
                 }
@@ -60,8 +62,10 @@ pub fn parse_blocks(input: &str) -> Vec<Block> {
 
             while let Some(next) = lines.peek() {
                 if !is_table_line(next) && !next.starts_with("```") {
-                    buffer.push_str(lines.next().unwrap());
-                    buffer.push('\n');
+                    if let Some(l) = lines.next() {
+                        buffer.push_str(l);
+                        buffer.push('\n');
+                    }
                 } else {
                     break;
                 }
