@@ -8,10 +8,12 @@ A lightweight and efficient command-line interface (CLI) agent designed to inter
 * ⚡ Color console
 * ⚡ Code syntax highlighting
 
-
 ## 🚀 Usage examples
-(There will be some images here)
+### Code highlighting
+<img width="1133" height="1050" alt="code" src="https://github.com/user-attachments/assets/defd145e-dc9a-4305-8313-e13531e04483" />
 
+### Table rendering
+<img width="1474" height="958" alt="table" src="https://github.com/user-attachments/assets/6702f7ac-b492-454a-917a-402b34defce6" />
 
 ## 📦 Installation
 ```bash
