@@ -48,9 +48,12 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Rename and prepare artifact
+        shell: bash
         run: |
           BINARY_PATH="target/${{ matrix.target }}/release/llm-client${{ matrix.ext }}"
-          mv "$BINARY_PATH" "${{ matrix.artifact-name }}"
+          ARTIFACT_NAME="${{ matrix.artifact-name }}"
+          mv "$BINARY_PATH" "$ARTIFACT_NAME"
+          echo "Created artifact: $ARTIFACT_NAME"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

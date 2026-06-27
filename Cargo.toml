@@ -4,6 +4,9 @@ version = "0.3.0"
 edition = "2024"
 authors = ["hardglitch"]
 
+[[bin]]
+name = "llm-client"
+
 [dependencies]
 ureq = "3.3"
 serde = { version = "1", features = ["derive"] }
