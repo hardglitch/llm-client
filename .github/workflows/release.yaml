@@ -73,10 +73,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: releases
-          flatten: true
 
-      - name: Verify files exist (Debug step)
-        run: ls -la releases/
+      - name: Verify files structure
+        run: find releases -type f
 
       - name: Create Release and upload assets
         uses: softprops/action-gh-release@v1
@@ -84,9 +83,10 @@ jobs:
           name: "Release ${{ github.ref_name }}"
           body: |
             ## Changelog
+            
             * No changelog.
           files: |
-            releases/llm-client-linux-x86_64
-            releases/llm-client-macos-x86_64
-            releases/llm-client-windows-x86_64.exe
+            releases/llm-client-linux-x86_64/llm-client-linux-x86_64
+            releases/llm-client-macos-x86_64/llm-client-macos-x86_64
+            releases/llm-client-windows-x86_64.exe/llm-client-windows-x86_64.exe
           token: ${{ secrets.GITHUB_TOKEN }}
