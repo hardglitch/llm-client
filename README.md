@@ -25,9 +25,9 @@ cargo build --release
 ## ⚙️ Configuration
 ```bash
 -p, --port - server port (8080 by default)
--l, --log-file - log file (e.g. -l "log.log" by default)
---log-size - the log file size (e.g. --log-file 104857600 by default)
---show-stat - show token stat (e.g. "[tokens: 97/ total: 543/ context: 16384]"). Disabled by default
+-l, --log-file - log file ("log.log" by default)
+--log-size - the log file size in bytes (104857600 by default)
+--show-stat - show token stat (e.g. "[tokens: 97/ total: 543/ context: 16384]"), disabled by default
 
 exit - exit from programm
 ```
