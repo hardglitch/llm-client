@@ -25,6 +25,8 @@ cargo build --release
 ## ⚙️ Configuration
 ```bash
 -p, --port - server port (8080 by default)
+-l - log file (e.g. -l "log.log" by default)
+-log-size - the log file size (e.g. -log-file 104857600 by default)
 ```
 
 ## 📜 License
