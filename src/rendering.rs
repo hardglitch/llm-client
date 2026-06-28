@@ -92,3 +92,26 @@ fn normalize_text(text: &str) -> String {
     })
         .into_owned()
 }
+
+pub struct Stat{
+    current: usize,
+    total: usize,
+    ctx_size: usize,
+}
+impl Stat {
+    pub fn new(current: usize, total: usize, ctx_size: usize) -> Self {
+        Self { current, total, ctx_size }
+    }
+}
+
+#[inline]
+pub fn stat(stat: Stat) {
+    let ctx_size = if stat.ctx_size == 0 { "unavailable" } else { &stat.ctx_size.to_string() };
+    eprint!(
+        "\r [tokens: {}/ total: {}/ context: {}] ",
+        stat.current,
+        stat.total,
+        ctx_size
+    );
+}
+

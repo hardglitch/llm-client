@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum Block {
     Code { code: String, lang: String, },
     Table(String),

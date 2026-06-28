@@ -1,9 +1,10 @@
 use std::io::Write;
 use clap::Parser;
 use rendering::{make_skin, render};
-use messaging::send_prompt;
+use messaging::prompt;
 use crate::commands::Args;
 use crate::logging::Log;
+use crate::messaging::Props;
 
 mod rendering;
 mod text_processing;
@@ -15,10 +16,10 @@ mod logging;
 
 fn main() {
     let args = Args::parse();
-    let address = args.address();
     Log::init(&args.log_file, args.log_size);
 
 	let skin = &mut make_skin();
+    let mut props = Props::default();
 
     println!("llm-client");
     loop {
@@ -31,7 +32,7 @@ fn main() {
 
         if input.eq_ignore_ascii_case("exit") { break; }
 
-        match send_prompt(input, &address) {
+        match prompt(input, &args, &mut props) {
             Ok(output) => render(&output, skin),
             Err(e) => println!("Error: {}\n", e),
         }
