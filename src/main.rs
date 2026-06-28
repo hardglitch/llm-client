@@ -21,7 +21,10 @@ fn main() {
 
 	let skin = &mut make_skin();
     let host = format!("http://127.0.0.1:{}", args.port);
-    let mut props = if args.show_stat { Some(&mut Props::init(&host)) } else { None };
+
+    let mut props_storage = if args.show_stat { Some(Props::init(&host)) } else { None };
+    let mut props = props_storage.as_mut();
+
     let tokenizer = if args.show_stat {
         match cl100k_base() {
             Ok(t) => { Some(t) }
@@ -41,9 +44,11 @@ fn main() {
         if input.eq_ignore_ascii_case("exit") { break; }
 
         match prompt(input, &args, &mut props, &tokenizer) {
-            Ok(output) => render(&output, skin),
+            Ok(output) => {
+                render(&output, skin);
+            },
             Err(e) => {
-                println!("Error: {e}\n");
+                eprintln!("Error: {e}\n");
                 log!("Prompt error: {e}\n")
             }
         }

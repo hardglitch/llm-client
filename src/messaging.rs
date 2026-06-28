@@ -30,7 +30,7 @@ struct StreamChoice {
 struct Delta {
     content: Option<String>,
 }
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Debug)]
 pub struct Props {
     current_tokens: usize,
     total_used_tokens: usize,
@@ -151,7 +151,10 @@ pub fn prompt(prompt: &str, args: &Args, props: &mut Option<&mut Props>, tokeniz
             }
         }
     }
-    if props.is_some() && tokenizer.is_some() { println!(); }
+    if let Some(props_) = props {
+        props_.current_tokens = 0;
+        println!();
+    }
     Ok(result)
 }
 

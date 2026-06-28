@@ -18,7 +18,6 @@ fn convert_ascii(text: &str) -> String {
 }
 
 fn convert_table_to_terminad_style(input: &str) -> String {
-    // dbg!(&input);
     let mut lines = input.lines().peekable();
     let mut out = Vec::new();
 
