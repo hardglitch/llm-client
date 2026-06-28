@@ -2,6 +2,7 @@ use crate::rendering::{stat, Stat};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::io::{BufRead, BufReader};
+use anyhow::anyhow;
 use serde_json::Value;
 use tiktoken_rs::{cl100k_base, CoreBPE};
 use crate::commands::Args;
@@ -59,8 +60,7 @@ impl Props {
             {
                 ctx_size_
             }
-            else { 0 };
-
+            else { return Err(anyhow!("Context size not found")) };
         Ok(ctx_size)
     }
     fn try_webui(address: &str) -> Result<u64, anyhow::Error> {
@@ -69,7 +69,13 @@ impl Props {
             .body_mut()
             .read_to_vec()?;
         let props: Value = serde_json::from_slice(&data)?;
-        let ctx_size = props.get("max_seq_len").unwrap().as_u64().unwrap();
+        let ctx_size =
+            if let Some(val) = props.get("max_seq_len") &&
+               let Some(ctx_size) = val.as_u64()
+            {
+                ctx_size
+            }
+            else { return Err(anyhow!("Context size not found")) };
         Ok(ctx_size)
     }
     fn try_tgi(address: &str) -> Result<u64, anyhow::Error> {
@@ -78,7 +84,13 @@ impl Props {
             .body_mut()
             .read_to_vec()?;
         let props: Value = serde_json::from_slice(&data)?;
-        let ctx_size = props.get("max_total_tokens").unwrap().as_u64().unwrap();
+        let ctx_size =
+            if let Some(val) = props.get("max_total_tokens") &&
+                let Some(ctx_size) = val.as_u64()
+            {
+                ctx_size
+            }
+            else { return Err(anyhow!("Context size not found")) };
         Ok(ctx_size)
     }
 }

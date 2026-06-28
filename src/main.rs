@@ -34,7 +34,10 @@ fn main() {
 
         match prompt(input, &args, &mut props) {
             Ok(output) => render(&output, skin),
-            Err(e) => println!("Error: {}\n", e),
+            Err(e) => {
+                println!("Error: {e}\n");
+                log!("Error: {e}\n")
+            }
         }
     }
 }
