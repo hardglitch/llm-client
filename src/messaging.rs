@@ -1,13 +1,11 @@
+use crate::commands::Args;
 use crate::rendering::{stat, Stat};
+use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashSet;
 use std::io::{BufRead, BufReader};
-use anyhow::anyhow;
-use serde_json::Value;
-use tiktoken_rs::{cl100k_base, CoreBPE};
-use crate::commands::Args;
-
-const SERVER_URL: &str = "http://127.0.0.1:8080/v1/chat/completions";
+use tiktoken_rs::CoreBPE;
 
 #[derive(Serialize)]
 struct ChatRequest<'a> {
@@ -34,9 +32,18 @@ struct Delta {
 }
 #[derive(Deserialize, Default)]
 pub struct Props {
+    current_tokens: usize,
     total_used_tokens: usize,
+    ctx_size: usize,
 }
 impl Props {
+    pub fn init(host: &str) -> Self {
+        Self {
+            current_tokens: 0,
+            total_used_tokens: 0,
+            ctx_size: Self::context_size(host).unwrap_or_default() as usize,
+        }
+    }
     fn context_size(address: &str) -> Option<u64> {
         if let Ok(ctx) = Self::try_llama(address) { Some(ctx) }
         else if let Ok(ctx) = Self::try_tgi(address) { Some(ctx) }
@@ -95,13 +102,9 @@ impl Props {
     }
 }
 
-pub fn prompt(prompt: &str, args: &Args, props: &mut Props) -> Result<String, anyhow::Error> {
+pub fn prompt(prompt: &str, args: &Args, props: &mut Option<&mut Props>, tokenizer: &Option<CoreBPE>) -> Result<String, anyhow::Error> {
     let mut result = String::new();
-    let mut current_tokens = 0;
-    let tokenizer = cl100k_base()?;
-    let host = format!("http://127.0.0.1:{}", args.port);
-    let address = format!("{host}/v1/chat/completions");
-    let ctx_size = Props::context_size(&host).unwrap_or_default() as usize;
+    let address = format!("http://127.0.0.1:{}/v1/chat/completions", args.port);
 
     let req = ChatRequest {
         model: "any",
@@ -112,7 +115,6 @@ pub fn prompt(prompt: &str, args: &Args, props: &mut Props) -> Result<String, an
         stream: true,
     };
     let value = serde_json::to_vec(&req)?;
-    let address = if address.is_empty() { SERVER_URL } else { &address };
     let mut response = ureq::post(address)
         .header("Content-Type", "application/json")
         .send(value)?;
@@ -136,17 +138,20 @@ pub fn prompt(prompt: &str, args: &Args, props: &mut Props) -> Result<String, an
             // collect result
             result.push_str(content);
 
-            // update stat
-            let tokens = count_tokens(&tokenizer, content);
-            current_tokens += tokens;
-            props.total_used_tokens += tokens;
+            if let Some(props_) = props &&
+               let Some(tokenizer_) = tokenizer
+            {
+                // update stat
+                let tokens = count_tokens(tokenizer_, content);
+                props_.current_tokens += tokens;
+                props_.total_used_tokens += tokens;
 
-            let stat_info = Stat::new(current_tokens, props.total_used_tokens, ctx_size);
-            stat(stat_info);
+                let stat_info = Stat::new(props_.current_tokens, props_.total_used_tokens, props_.ctx_size);
+                stat(stat_info);
+            }
         }
     }
-
-    println!();
+    if props.is_some() && tokenizer.is_some() { println!(); }
     Ok(result)
 }
 
